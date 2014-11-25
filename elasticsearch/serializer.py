@@ -21,7 +21,7 @@ class TextSerializer(object):
         raise SerializationError('Cannot serialize %r into text.' % data)
 
 class JSONSerializer(object):
-    mimetype = 'application/json'
+    mimetype = 'application/json'    
 
     def default(self, data):
         if isinstance(data, (date, datetime)):
@@ -37,12 +37,21 @@ class JSONSerializer(object):
             raise SerializationError(s, e)
 
     def dumps(self, data):
+        def convert(input):
+            if isinstance(input, dict):
+                return {convert(key): convert(value) for key, value in input.iteritems()}
+            elif isinstance(input, list):
+                return [convert(element) for element in input]
+            elif isinstance(input, unicode):
+                return input.encode('utf-8')
+            else:
+                return input
         # don't serialize strings
         if isinstance(data, string_types):
             return data
 
         try:
-            return json.dumps(data, default=self.default)
+            return json.dumps(convert(data), default=self.default)
         except (ValueError, TypeError) as e:
             raise SerializationError(data, e)
 
